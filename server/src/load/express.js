@@ -6,7 +6,7 @@ const config = require('../config');
 const { errorHandler } = require('../middlewares/error.middleware');
 
 app.use(cors({
-  origin: config.clientOrigin,
+  origin: true,
   credentials: true
 }));
 
