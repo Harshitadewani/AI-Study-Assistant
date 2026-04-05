@@ -1,4 +1,4 @@
 import api from './axios';
 
-export const chat = (message) => api.post('ai/chat', { message });
-export const summarize = (text) => api.post('ai/summarize', { text });
+export const chat = (message) => api.post('/api/ai/chat', { message });
+export const summarize = (text) => api.post('/api/ai/summarize', { text });
