@@ -5,20 +5,16 @@ const routes = require('../routes');
 const config = require('../config');
 const { errorHandler } = require('../middlewares/error.middleware');
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  config.clientOrigin,
-].filter(Boolean);
 app.use(cors({
-  origin: (origin, cb) => (allowedOrigins.includes(origin) || !origin ? cb(null, true) : cb(null, false)),
-  credentials: true,
+  origin: config.clientOrigin,
+  credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', routes);
-app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 app.use(errorHandler);
 
