@@ -1,124 +1,140 @@
-// PlannerPage.jsx
-import { useState } from "react";
-import { PlannerForm } from "../components/PlannerForm";
-import { chat } from "../api/aiApi";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+// DashboardPage.jsx
+import { useState, useEffect } from "react";
+import { FaClipboardList, FaBook, FaCode } from "react-icons/fa";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/authStore"; // user auth
+import axios from "axios";
 
-// ✅ ADD THIS
-import useStudyTracker from "../hooks/useStudyTracker";
+// 🎯 Goal Tracker Component
+const GoalTracker = () => (
+  <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-2xl p-6 shadow-lg">
+    <h2 className="text-xl font-semibold mb-2">🎯 Daily Goal</h2>
+    <p>Your study time is automatically tracked ⏳</p>
+  </div>
+);
 
-export default function PlannerPage() {
+export default function DashboardPage() {
+  const { user, loading } = useAuthStore();
+  const userId = user?._id;
 
-  useStudyTracker(); // 🔥 AUTO TRACKING ENABLED
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [studyHours, setStudyHours] = useState([]);
 
-  const [plan, setPlan] = useState(null);
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (loading || !userId) return;
 
-  const handleSubmit = async (data) => {
-    setLoading(true);
-
-    try {
-      const prompt = `Create a study plan for: ${data.topic}${
-        data.hours ? `. Study ${data.hours} hours per day.` : ""
-      }${data.deadline ? ` Deadline: ${data.deadline}.` : ""}${
-        data.priorityTopics ? ` Focus on: ${data.priorityTopics}.` : ""
-      } Give a daily/weekly breakdown.`;
-
-      const { data: res } = await chat(prompt);
-
-      setPlan({
-        topic: data.topic,
-        content: res.reply,
-      });
-
-      // ✅ Browser Notification
-      if ("Notification" in window) {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            new Notification("📚 Study Plan Ready!", {
-              body: `Your study plan for "${data.topic}" is ready.`,
-              icon: "/planner-icon.png",
-            });
-          }
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`/api/study/weekly/${userId}`);
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const formatted = days.map((day, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (6 - i));
+          const dateStr = date.toLocaleDateString("en-CA");
+          const found = res.data.find((d) => d.date === dateStr);
+          return { day, hours: found ? found.hours : 0 };
         });
+        setStudyHours(formatted);
+      } catch (err) {
+        console.log("Fetch Error:", err);
       }
+    };
 
-    } catch (err) {
-      setPlan({
-        error: err.response?.data?.error || err.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // auto refresh
+    return () => clearInterval(interval);
+  }, [userId, loading]);
 
-  // ✅ Export PDF
-  const handleDownloadPDF = () => {
-    if (!plan?.content) return;
-    import("html2pdf.js").then((html2pdf) => {
-      const element = document.getElementById("plan-output");
-      html2pdf.default().from(element).save(`${plan.topic}-StudyPlan.pdf`);
-    });
-  };
+  const recentActivities = [
+    "Solved coding doubt",
+    "Generated AI notes",
+    "Created study plan",
+  ];
+
+  if (loading || !user) {
+    return <div className="p-6 text-center text-slate-500">Loading dashboard...</div>;
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
 
-      {/* Header */}
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">
-        📅 AI Study Planner
-      </h1>
-
-      <p className="text-slate-600 mb-6">
-        Generate a personalized study schedule based on your topic, hours, and focus areas.
-      </p>
-
-      {/* Planner Form */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-lg mb-6">
-        <PlannerForm onSubmit={handleSubmit} />
+      {/* 👋 Welcome */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800 mb-1">👋 Hello {user.name}!</h1>
+        <p className="text-slate-600">Track your real study progress with AI 🚀</p>
       </div>
 
-      {/* Loader */}
-      {loading && (
-        <div className="flex items-center gap-2 text-slate-500 mb-6">
-          <div className="animate-bounce">📚</div>
-          Creating your study plan...
-        </div>
-      )}
+      {/* 🚀 Feature Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { title: "Study Planner", icon: <FaClipboardList size={32} />, link: "/planner", color: "bg-gradient-to-r from-indigo-500 to-purple-500" },
+          { title: "AI Notes", icon: <FaBook size={32} />, link: "/ai-doubts", color: "bg-gradient-to-r from-green-400 to-teal-500" },
+          { title: "Code Doubts", icon: <FaCode size={32} />, link: "/doubts", color: "bg-gradient-to-r from-pink-500 to-red-500" },
+        ].map((card) => (
+          <Link
+            key={card.title}
+            to={card.link}
+            className={`${card.color} text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 cursor-pointer transition-all duration-300 flex flex-col items-center gap-4 text-center`}
+          >
+            <div>{card.icon}</div>
+            <h3 className="font-semibold text-lg">{card.title}</h3>
+            <p className="text-white/80">Click to open</p>
+          </Link>
+        ))}
+      </div>
 
-      {/* Plan Output */}
-      {plan && !loading && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-lg mb-6">
+      {/* 🎯 Goal + 📊 Chart */}
+      <div className="grid md:grid-cols-2 gap-6">
 
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-slate-800 text-lg">
-              Your Study Plan
-            </h3>
+        {/* Goal Tracker */}
+        <GoalTracker />
 
-            <button
-              onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Download PDF
-            </button>
-          </div>
+        {/* Weekly Study Chart */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-lg">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">📊 Weekly Study Hours</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={studyHours}>
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Bar
+                dataKey="hours"
+                fill="#6366f1"
+                radius={[5, 5, 0, 0]}
+                onClick={(data) => setSelectedDay(data.day)}
+                cursor="pointer"
+              />
+            </BarChart>
+          </ResponsiveContainer>
 
-          {plan.error ? (
-            <p className="text-red-600">{plan.error}</p>
-          ) : (
-            <div
-              id="plan-output"
-              className="prose max-w-none bg-slate-50 p-5 rounded-lg overflow-x-auto text-slate-700"
-            >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {plan.content}
-              </ReactMarkdown>
+          {/* Day Details */}
+          {selectedDay && (
+            <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
+              <p className="font-semibold">📅 {selectedDay} Details</p>
+              <p className="text-sm text-slate-600">
+                You studied {studyHours.find((d) => d.day === selectedDay)?.hours} hrs
+              </p>
             </div>
           )}
-
         </div>
-      )}
+
+      </div>
+
+      {/* 📝 Recent Activity */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-lg">
+        <h2 className="text-xl font-semibold text-slate-800 mb-4">📝 Recent Activities</h2>
+        <ul className="space-y-2 text-slate-700">
+          {recentActivities.map((act, i) => (
+            <li
+              key={i}
+              className="bg-slate-50 p-3 rounded-lg hover:bg-slate-100 transition"
+            >
+              {act}
+            </li>
+          ))}
+        </ul>
+      </div>
 
     </div>
   );
