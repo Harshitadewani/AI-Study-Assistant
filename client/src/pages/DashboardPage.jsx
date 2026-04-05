@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom"; // ✅ SPA navigation
 import axios from "axios";
 import { FaClipboardList, FaBook, FaCode, FaBullseye } from "react-icons/fa";
 import {
@@ -11,10 +10,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useAuthStore } from "../store/authStore";
+import { useNavigate } from "react-router-dom";
 
+// Card color constant
+const CARD_COLOR = "from-purple-500 to-indigo-600 text-white";
+
+// Goal Tracker
 const GoalTracker = () => {
   return (
-    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition transform hover:-translate-y-1">
+    <div className={`bg-gradient-to-br ${CARD_COLOR} rounded-2xl p-6 shadow-xl hover:shadow-2xl transition transform hover:-translate-y-1`}>
       <div className="flex items-center gap-3 mb-3">
         <FaBullseye size={28} />
         <h2 className="text-xl font-bold">🎯 Daily Goal</h2>
@@ -29,6 +33,7 @@ const GoalTracker = () => {
 export default function DashboardPage() {
   const { user, loading } = useAuthStore();
   const userId = user?._id;
+  const navigate = useNavigate();
 
   const [selectedDay, setSelectedDay] = useState(null);
   const [studyHours, setStudyHours] = useState([]);
@@ -74,8 +79,15 @@ export default function DashboardPage() {
     );
   }
 
+  const featureCards = [
+    { title: "Study Planner", icon: <FaClipboardList size={32} />, link: "/planner" },
+    { title: "AI Notes", icon: <FaBook size={32} />, link: "/notes" },
+    { title: "Code Doubts", icon: <FaCode size={32} />, link: "/coding-doubt" },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-8">
+
       {/* Welcome */}
       <div className="text-center md:text-left">
         <h1 className="text-4xl font-extrabold text-gradient bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-500 mb-2">
@@ -88,26 +100,26 @@ export default function DashboardPage() {
 
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { title: "Study Planner", icon: <FaClipboardList size={32} />, link: "/planner" },
-          { title: "AI Notes", icon: <FaBook size={32} />, link: "/ai-doubt" },
-          { title: "Code Doubts", icon: <FaCode size={32} />, link: "/coding-doubt" },
-        ].map((card) => (
-          <Link
+        {featureCards.map((card) => (
+          <div
             key={card.title}
-            to={card.link} // ✅ SPA navigation
-            className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 flex flex-col items-center gap-4 text-center"
+            onClick={() => navigate(card.link)}
+            className={`bg-gradient-to-br ${CARD_COLOR} p-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105 cursor-pointer transition-all duration-300 flex flex-col items-center gap-4 text-center`}
           >
-            <div className="text-purple-600">{card.icon}</div>
+            <div>{card.icon}</div>
             <h3 className="font-semibold text-lg">{card.title}</h3>
-            <p className="text-slate-500">Click to open</p>
-          </Link>
+            <p className="text-purple-100">Click to open</p>
+          </div>
         ))}
       </div>
 
       {/* Goal + Chart */}
       <div className="grid md:grid-cols-2 gap-6">
+
+        {/* Goal */}
         <GoalTracker />
+
+        {/* Chart */}
         <div className="bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-6 shadow-lg">
           <h2 className="text-xl font-semibold text-slate-800 mb-4">
             📊 Weekly Study Hours
@@ -144,6 +156,7 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
       </div>
 
       {/* Recent Activity */}
